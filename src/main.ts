@@ -299,6 +299,7 @@ class CodexBridgeView extends ItemView {
             .onClick(() => void this.plugin.applyLatestSuggestion())
         );
     }
+    this.renderActions(container);
   }
 
   private renderShell(status = "Ready."): void {
@@ -306,6 +307,10 @@ class CodexBridgeView extends ItemView {
     container.empty();
     container.createEl("h2", { text: "Codex Bridge" });
     container.createEl("p", { text: status });
+    this.renderActions(container);
+  }
+
+  private renderActions(container: HTMLElement): void {
     new Setting(container)
       .setName("Ask about current note")
       .addButton((button) =>
