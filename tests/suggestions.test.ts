@@ -32,6 +32,18 @@ describe("extractUpdatedNoteFromSuggestion", () => {
     );
   });
 
+  it("accepts apostrophe-like fences emitted by local agents", () => {
+    const suggestion = [
+      "'''markdown updated-note",
+      "# Test Note",
+      "",
+      "Better body.",
+      "'''"
+    ].join("\n");
+
+    expect(extractUpdatedNoteFromSuggestion(suggestion)).toBe("# Test Note\n\nBetter body.");
+  });
+
   it("returns null when no full-note rewrite is present", () => {
     expect(extractUpdatedNoteFromSuggestion("Only a few bullet suggestions")).toBeNull();
   });

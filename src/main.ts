@@ -142,7 +142,15 @@ export default class CodexBridgePlugin extends Plugin {
 
   async suggestEditsForCurrentNote(): Promise<void> {
     await this.runTask(
-      "Suggest concrete improvements for this note. If a full rewrite is useful, include it in a fenced block labelled `markdown updated-note`."
+      [
+        "Suggest concrete improvements for this note.",
+        "Then output a complete rewritten note in exactly one fenced block labelled markdown updated-note.",
+        "Use four backticks for the outer fence so inner Markdown code fences remain safe.",
+        "The final block must look like:",
+        "````markdown updated-note",
+        "# Full rewritten note",
+        "````"
+      ].join("\n")
     );
   }
 

@@ -1,7 +1,9 @@
 export function extractUpdatedNoteFromSuggestion(suggestion: string): string | null {
   const lines = suggestion.split("\n");
   for (let index = 0; index < lines.length; index += 1) {
-    const match = lines[index].match(/^(`{3,}|~{3,})\s*markdown\s+updated-note\s*$/i);
+    const match = normalizedFenceLine(lines[index]).match(
+      /^(`{3,}|~{3,})\s*markdown\s+updated-note\s*$/i
+    );
     if (!match) {
       continue;
     }
@@ -9,13 +11,22 @@ export function extractUpdatedNoteFromSuggestion(suggestion: string): string | n
     const marker = match[1][0];
     const length = match[1].length;
     for (let end = index + 1; end < lines.length; end += 1) {
-      const closing = lines[end].match(new RegExp(`^\\${marker}{${length},}\\s*$`));
+      const closing = normalizedFenceLine(lines[end]).match(
+        new RegExp(`^\\${marker}{${length},}\\s*$`)
+      );
       if (closing) {
         return lines.slice(index + 1, end).join("\n").trim();
       }
     }
   }
   return null;
+}
+
+function normalizedFenceLine(line: string): string {
+  return line
+    .replace(/[‘’‚‛＇']/g, "`")
+    .replace(/[“”„‟]/g, "`")
+    .trim();
 }
 
 export function buildDiffPreview(before: string, after: string): string {
