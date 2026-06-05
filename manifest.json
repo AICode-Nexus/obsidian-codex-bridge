@@ -1,0 +1,10 @@
+{
+  "id": "codex-bridge",
+  "name": "Codex Bridge",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Connect Obsidian notes to OpenAI API calls and high-permission local Codex-style agents.",
+  "author": "AICode-Nexus",
+  "authorUrl": "https://github.com/AICode-Nexus",
+  "isDesktopOnly": true
+}

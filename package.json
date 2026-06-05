@@ -1,0 +1,34 @@
+{
+  "name": "obsidian-codex-bridge",
+  "version": "0.1.0",
+  "description": "An Obsidian plugin that connects vault notes to OpenAI API calls and high-permission local Codex-style agents.",
+  "type": "module",
+  "packageManager": "pnpm@10.26.2",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "main.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check": "pnpm test && pnpm typecheck && pnpm build"
+  },
+  "keywords": [
+    "obsidian",
+    "codex",
+    "openai",
+    "agent",
+    "notes"
+  ],
+  "author": "AICode-Nexus",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.10.2",
+    "esbuild": "^0.27.1",
+    "obsidian": "^1.13.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  }
+}

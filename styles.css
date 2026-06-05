@@ -1,0 +1,10 @@
+.codex-bridge-output,
+.codex-bridge-diff {
+  max-height: 60vh;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.codex-bridge-diff {
+  font-size: var(--font-ui-small);
+}
