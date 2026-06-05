@@ -1,10 +1,127 @@
-.codex-bridge-output,
-.codex-bridge-diff {
-  max-height: 60vh;
+.workspace-leaf-content[data-type="codex-bridge-view"] .view-content {
+  padding: 18px;
+}
+
+.codex-bridge-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.codex-bridge-title {
+  font-size: 24px;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.codex-bridge-subtitle {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin-top: 4px;
+}
+
+.codex-bridge-status {
+  background: var(--background-modifier-hover);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  line-height: 1;
+  max-width: 128px;
+  overflow: hidden;
+  padding: 7px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.codex-bridge-actions {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 14px;
+  padding: 8px;
+}
+
+.codex-bridge-action {
+  min-height: 38px;
+  width: 100%;
+}
+
+.codex-bridge-action:last-child {
+  grid-column: 1 / -1;
+}
+
+.codex-bridge-panel,
+.codex-bridge-empty {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  margin-top: 12px;
+  padding: 14px;
+}
+
+.codex-bridge-panel-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.codex-bridge-section-label {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 700;
+  letter-spacing: 0;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.codex-bridge-output {
+  color: var(--text-normal);
+  font-family: var(--font-text);
+  font-size: var(--font-ui-medium);
+  line-height: 1.55;
+  max-height: 58vh;
   overflow: auto;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .codex-bridge-diff {
+  background: var(--background-secondary);
+  border-radius: 8px;
   font-size: var(--font-ui-small);
+  line-height: 1.45;
+  margin: 10px 0 0;
+  max-height: 34vh;
+  overflow: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
+.codex-bridge-apply {
+  flex: 0 0 auto;
+  min-height: 34px;
+}
+
+.codex-bridge-empty {
+  color: var(--text-muted);
+}
+
+.codex-bridge-empty-title {
+  color: var(--text-normal);
+  font-weight: 650;
+  margin-bottom: 6px;
+}
+
+.codex-bridge-empty-copy {
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
 }

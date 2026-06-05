@@ -259,6 +259,7 @@ export default class CodexBridgePlugin extends Plugin {
 
 class CodexBridgeView extends ItemView {
   private plugin: CodexBridgePlugin;
+  private statusText = "Ready";
 
   constructor(leaf: WorkspaceLeaf, plugin: CodexBridgePlugin) {
     super(leaf);
@@ -278,54 +279,67 @@ class CodexBridgeView extends ItemView {
   }
 
   setStatus(status: string): void {
+    this.statusText = status;
     this.renderShell(status);
   }
 
   setResult(response: string, diff: string): void {
+    this.statusText = diff ? "Suggestion ready" : "Response ready";
     const container = this.contentContainer();
     container.empty();
-    container.createEl("h2", { text: "Codex Bridge" });
-    container.createEl("pre", { text: response, cls: "codex-bridge-output" });
-    if (diff) {
-      container.createEl("h3", { text: "Diff preview" });
-      container.createEl("pre", { text: diff, cls: "codex-bridge-diff" });
-      new Setting(container)
-        .setName("Apply suggested edit")
-        .setDesc("Replace the current note with the fenced `markdown updated-note` block.")
-        .addButton((button) =>
-          button
-            .setButtonText("Apply")
-            .setCta()
-            .onClick(() => void this.plugin.applyLatestSuggestion())
-        );
-    }
+    this.renderHeader(container);
     this.renderActions(container);
+    const result = container.createDiv({ cls: "codex-bridge-panel codex-bridge-result" });
+    result.createDiv({ text: diff ? "Assistant response" : "Result", cls: "codex-bridge-section-label" });
+    result.createEl("div", { text: response, cls: "codex-bridge-output" });
+    if (diff) {
+      const diffPanel = container.createDiv({ cls: "codex-bridge-panel" });
+      const diffHeader = diffPanel.createDiv({ cls: "codex-bridge-panel-header" });
+      diffHeader.createDiv({ text: "Diff preview", cls: "codex-bridge-section-label" });
+      const applyButton = diffHeader.createEl("button", {
+        text: "Apply",
+        cls: "mod-cta codex-bridge-apply"
+      });
+      applyButton.addEventListener("click", () => void this.plugin.applyLatestSuggestion());
+      diffPanel.createEl("pre", { text: diff, cls: "codex-bridge-diff" });
+    }
   }
 
   private renderShell(status = "Ready."): void {
+    this.statusText = status.replace(/\.$/, "");
     const container = this.contentContainer();
     container.empty();
-    container.createEl("h2", { text: "Codex Bridge" });
-    container.createEl("p", { text: status });
+    this.renderHeader(container);
     this.renderActions(container);
+    const empty = container.createDiv({ cls: "codex-bridge-empty" });
+    empty.createDiv({ text: "Open a note, ask a question, or run diagnostics.", cls: "codex-bridge-empty-title" });
+    empty.createDiv({
+      text: "Results appear here without changing your note unless you explicitly apply a suggested rewrite.",
+      cls: "codex-bridge-empty-copy"
+    });
+  }
+
+  private renderHeader(container: HTMLElement): void {
+    const header = container.createDiv({ cls: "codex-bridge-header" });
+    const titleBlock = header.createDiv();
+    titleBlock.createEl("h2", { text: "Codex Bridge", cls: "codex-bridge-title" });
+    titleBlock.createDiv({ text: "Obsidian note agent", cls: "codex-bridge-subtitle" });
+    header.createDiv({ text: this.statusText, cls: "codex-bridge-status" });
   }
 
   private renderActions(container: HTMLElement): void {
-    new Setting(container)
-      .setName("Ask about current note")
-      .addButton((button) =>
-        button.setButtonText("Ask").onClick(() => void this.plugin.askAboutCurrentNote())
-      );
-    new Setting(container)
-      .setName("Suggest edits")
-      .addButton((button) =>
-        button.setButtonText("Suggest").onClick(() => void this.plugin.suggestEditsForCurrentNote())
-      );
-    new Setting(container)
-      .setName("Diagnose local backend")
-      .addButton((button) =>
-        button.setButtonText("Diagnose").onClick(() => void this.plugin.diagnoseLocalBackend())
-      );
+    const actions = container.createDiv({ cls: "codex-bridge-actions" });
+    const ask = actions.createEl("button", { text: "Ask", cls: "mod-cta codex-bridge-action" });
+    ask.setAttribute("aria-label", "Ask about current note");
+    ask.addEventListener("click", () => void this.plugin.askAboutCurrentNote());
+
+    const suggest = actions.createEl("button", { text: "Suggest", cls: "codex-bridge-action" });
+    suggest.setAttribute("aria-label", "Suggest edits for current note");
+    suggest.addEventListener("click", () => void this.plugin.suggestEditsForCurrentNote());
+
+    const diagnose = actions.createEl("button", { text: "Diagnose", cls: "codex-bridge-action" });
+    diagnose.setAttribute("aria-label", "Diagnose local backend");
+    diagnose.addEventListener("click", () => void this.plugin.diagnoseLocalBackend());
   }
 
   private contentContainer(): HTMLElement {
