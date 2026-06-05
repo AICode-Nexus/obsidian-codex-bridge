@@ -10,6 +10,7 @@ import {
   TFile,
   WorkspaceLeaf
 } from "obsidian";
+import { resolveCurrentMarkdownFile } from "./currentNote";
 import { callOpenAI } from "./openaiClient";
 import { runLocalAgent } from "./localAgent";
 import { DEFAULT_SETTINGS, type BackendMode, type CodexBridgeSettings } from "./settings";
@@ -29,6 +30,7 @@ export default class CodexBridgePlugin extends Plugin {
   settings: CodexBridgeSettings = DEFAULT_SETTINGS;
   private view: CodexBridgeView | null = null;
   private latestSuggestion: SuggestionState | null = null;
+  private lastMarkdownFile: TFile | null = null;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -41,6 +43,15 @@ export default class CodexBridgePlugin extends Plugin {
     this.addRibbonIcon("sparkles", "Codex Bridge", () => {
       void this.activateView();
     });
+
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", () => {
+        const file = this.app.workspace.getActiveFile();
+        if (file?.extension === "md") {
+          this.lastMarkdownFile = file;
+        }
+      })
+    );
 
     this.addCommand({
       id: "open-codex-bridge",
@@ -193,7 +204,8 @@ export default class CodexBridgePlugin extends Plugin {
 
   private getCurrentMarkdownFile(): TFile | null {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    return view?.file ?? null;
+    const activeFile = view?.file ?? this.app.workspace.getActiveFile();
+    return resolveCurrentMarkdownFile(activeFile, this.lastMarkdownFile);
   }
 
   private getVaultPath(): string {
