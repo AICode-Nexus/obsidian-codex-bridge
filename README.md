@@ -58,7 +58,17 @@ For local Obsidian testing, copy or symlink this repository to:
 <vault>/.obsidian/plugins/codex-bridge
 ```
 
-Then enable community plugins and turn on Codex Bridge.
+You can also clone it directly:
+
+```bash
+mkdir -p "<vault>/.obsidian/plugins"
+git clone https://github.com/AICode-Nexus/obsidian-codex-bridge.git "<vault>/.obsidian/plugins/codex-bridge"
+cd "<vault>/.obsidian/plugins/codex-bridge"
+corepack pnpm install
+corepack pnpm build
+```
+
+Then reload Obsidian, enable community plugins, and turn on Codex Bridge.
 
 ## Safety Notes
 
