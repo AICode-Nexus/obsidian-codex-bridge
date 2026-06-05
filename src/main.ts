@@ -10,12 +10,19 @@ import {
   TFile,
   WorkspaceLeaf
 } from "obsidian";
+import { canApplySuggestedEdit } from "./applyGuard";
 import { resolveCurrentMarkdownFile } from "./currentNote";
 import { callOpenAI } from "./openaiClient";
-import { runLocalAgent } from "./localAgent";
-import { DEFAULT_SETTINGS, type BackendMode, type CodexBridgeSettings } from "./settings";
+import { diagnoseLocalAgent, runLocalAgent } from "./localAgent";
+import {
+  DEFAULT_SETTINGS,
+  normalizeSettings,
+  type BackendMode,
+  type CodexBridgeSettings
+} from "./settings";
 import { buildDiffPreview, extractUpdatedNoteFromSuggestion } from "./suggestions";
 import { readVaultInstructions } from "./vaultRules";
+import { resolveVaultPath } from "./vaultPath";
 
 const VIEW_TYPE_CODEX_BRIDGE = "codex-bridge-view";
 
@@ -62,13 +69,13 @@ export default class CodexBridgePlugin extends Plugin {
     this.addCommand({
       id: "ask-about-current-note",
       name: "Ask about current note",
-      editorCallback: () => void this.askAboutCurrentNote()
+      callback: () => void this.askAboutCurrentNote()
     });
 
     this.addCommand({
       id: "suggest-edits-current-note",
       name: "Suggest edits for current note",
-      editorCallback: () => void this.suggestEditsForCurrentNote()
+      callback: () => void this.suggestEditsForCurrentNote()
     });
 
     this.addCommand({
@@ -93,6 +100,12 @@ export default class CodexBridgePlugin extends Plugin {
       }
     });
 
+    this.addCommand({
+      id: "diagnose-local-backend",
+      name: "Diagnose local backend",
+      callback: () => void this.diagnoseLocalBackend()
+    });
+
     this.addSettingTab(new CodexBridgeSettingTab(this.app, this));
   }
 
@@ -101,10 +114,8 @@ export default class CodexBridgePlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = {
-      ...DEFAULT_SETTINGS,
-      ...(await this.loadData())
-    };
+    this.settings = normalizeSettings(await this.loadData());
+    await this.saveSettings();
   }
 
   async saveSettings(): Promise<void> {
@@ -146,6 +157,7 @@ export default class CodexBridgePlugin extends Plugin {
     this.view?.setStatus("Running...");
 
     try {
+      const vaultPath = this.getVaultPath();
       const noteContent = await this.app.vault.cachedRead(note);
       const truncatedContent = noteContent.slice(0, this.settings.maxNoteChars);
       const vaultInstructions = await readVaultInstructions(this.app);
@@ -160,7 +172,7 @@ export default class CodexBridgePlugin extends Plugin {
             })
           : await runLocalAgent({
               settings: this.settings,
-              vaultPath: this.getVaultPath(),
+              vaultPath,
               notePath: note.path,
               noteContent: truncatedContent,
               task,
@@ -182,6 +194,24 @@ export default class CodexBridgePlugin extends Plugin {
     }
   }
 
+  async diagnoseLocalBackend(): Promise<void> {
+    await this.activateView();
+    this.view?.setStatus("Running diagnostics...");
+
+    try {
+      const result = await diagnoseLocalAgent({
+        settings: this.settings,
+        vaultPath: this.getVaultPath()
+      });
+      this.view?.setResult(result.report, "");
+      new Notice(result.ok ? "Local backend diagnostics passed." : "Local backend diagnostics found issues.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.view?.setStatus(`Diagnostics error: ${message}`);
+      new Notice(message);
+    }
+  }
+
   async applyLatestSuggestion(): Promise<void> {
     if (!this.latestSuggestion?.updatedNote) {
       new Notice("No full-note suggestion is available.");
@@ -198,6 +228,16 @@ export default class CodexBridgePlugin extends Plugin {
   }
 
   private async writeSuggestion(suggestion: SuggestionState): Promise<void> {
+    const current = await this.app.vault.read(suggestion.note);
+    const guard = canApplySuggestedEdit({
+      original: suggestion.original,
+      current
+    });
+    if (!guard.ok) {
+      new Notice(guard.reason);
+      this.view?.setStatus(`Apply blocked: ${guard.reason}`);
+      return;
+    }
     await this.app.vault.modify(suggestion.note, suggestion.updatedNote ?? suggestion.original);
     new Notice("Suggested edit applied.");
   }
@@ -209,11 +249,11 @@ export default class CodexBridgePlugin extends Plugin {
   }
 
   private getVaultPath(): string {
-    const adapter = this.app.vault.adapter;
-    if ("basePath" in adapter && typeof adapter.basePath === "string") {
-      return adapter.basePath;
+    const path = resolveVaultPath(this.app.vault.adapter);
+    if (!path) {
+      throw new Error("This vault does not expose a local filesystem path.");
     }
-    return "/";
+    return path;
   }
 }
 
@@ -276,10 +316,15 @@ class CodexBridgeView extends ItemView {
       .addButton((button) =>
         button.setButtonText("Suggest").onClick(() => void this.plugin.suggestEditsForCurrentNote())
       );
+    new Setting(container)
+      .setName("Diagnose local backend")
+      .addButton((button) =>
+        button.setButtonText("Diagnose").onClick(() => void this.plugin.diagnoseLocalBackend())
+      );
   }
 
   private contentContainer(): HTMLElement {
-    return this.containerEl.children[1] as HTMLElement;
+    return this.contentEl;
   }
 }
 
@@ -433,6 +478,16 @@ class CodexBridgeSettingTab extends PluginSettingTab {
         this.plugin.settings.maxNoteChars = Number.isFinite(parsed)
           ? parsed
           : DEFAULT_SETTINGS.maxNoteChars;
+        await this.plugin.saveSettings();
+      })
+    );
+
+    new Setting(containerEl).setName("Local timeout ms").addText((text) =>
+      text.setValue(String(this.plugin.settings.localTimeoutMs)).onChange(async (value) => {
+        const parsed = Number.parseInt(value, 10);
+        this.plugin.settings.localTimeoutMs = Number.isFinite(parsed)
+          ? parsed
+          : DEFAULT_SETTINGS.localTimeoutMs;
         await this.plugin.saveSettings();
       })
     );

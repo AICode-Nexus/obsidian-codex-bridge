@@ -1,6 +1,21 @@
 export function extractUpdatedNoteFromSuggestion(suggestion: string): string | null {
-  const match = suggestion.match(/```markdown\s+updated-note\s*\n([\s\S]*?)\n```/i);
-  return match?.[1]?.trim() ?? null;
+  const lines = suggestion.split("\n");
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^(`{3,}|~{3,})\s*markdown\s+updated-note\s*$/i);
+    if (!match) {
+      continue;
+    }
+
+    const marker = match[1][0];
+    const length = match[1].length;
+    for (let end = index + 1; end < lines.length; end += 1) {
+      const closing = lines[end].match(new RegExp(`^\\${marker}{${length},}\\s*$`));
+      if (closing) {
+        return lines.slice(index + 1, end).join("\n").trim();
+      }
+    }
+  }
+  return null;
 }
 
 export function buildDiffPreview(before: string, after: string): string {
