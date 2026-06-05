@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildLocalAgentPrompt, resolveLocalAgentCommand, splitCommandArgs } from "../src/localAgent";
+import {
+  buildLocalAgentPrompt,
+  resolveExecutableCommand,
+  resolveLocalAgentCommand,
+  splitCommandArgs
+} from "../src/localAgent";
 import { DEFAULT_SETTINGS } from "../src/settings";
 
 describe("splitCommandArgs", () => {
@@ -26,7 +31,11 @@ describe("resolveLocalAgentCommand", () => {
       vaultPath: "/Users/me/Vault",
       notePath: "inbox.md",
       noteContent: "raw idea",
-      task: "Organize this"
+      task: "Organize this",
+      executableResolver: {
+        candidatePaths: [],
+        exists: () => false
+      }
     });
 
     expect(command.command).toBe("codex");
@@ -36,6 +45,26 @@ describe("resolveLocalAgentCommand", () => {
     expect(command.stdin).toContain("Organize this");
     expect(command.stdin).toContain("inbox.md");
     expect(command.cwd).toBe("/Users/me/Vault");
+  });
+});
+
+describe("resolveExecutableCommand", () => {
+  it("uses an existing absolute candidate when a GUI-launched app cannot find codex on PATH", () => {
+    expect(
+      resolveExecutableCommand("codex", {
+        candidatePaths: ["/missing/codex", "/Users/admin/.nvm/versions/node/v24.15.0/bin/codex"],
+        exists: (path) => path.includes("v24.15.0")
+      })
+    ).toBe("/Users/admin/.nvm/versions/node/v24.15.0/bin/codex");
+  });
+
+  it("keeps custom absolute commands untouched", () => {
+    expect(
+      resolveExecutableCommand("/opt/bin/custom-agent", {
+        candidatePaths: ["/Users/admin/.nvm/versions/node/v24.15.0/bin/codex"],
+        exists: () => true
+      })
+    ).toBe("/opt/bin/custom-agent");
   });
 });
 

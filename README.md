@@ -28,6 +28,12 @@ The plugin sends the task, current note path, root `AGENTS.md` content, and curr
 
 This is suitable for private, trusted vaults. Use a more restrictive command if you want human approval or read-only behavior.
 
+If Obsidian is launched from the macOS GUI, it may not inherit your shell `PATH`. Codex Bridge automatically checks common `codex` install paths such as nvm, Homebrew, and `/usr/local/bin`. You can also set the plugin's Local command to an absolute path, for example:
+
+```text
+/Users/admin/.nvm/versions/node/v24.15.0/bin/codex
+```
+
 ## OpenAI API Mode
 
 OpenAI mode calls:

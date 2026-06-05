@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import type { CodexBridgeSettings } from "./settings";
 
 export interface LocalAgentInput {
@@ -8,6 +9,10 @@ export interface LocalAgentInput {
   noteContent: string;
   task: string;
   vaultInstructions?: string;
+  executableResolver?: {
+    candidatePaths?: string[];
+    exists?: (path: string) => boolean;
+  };
 }
 
 export interface LocalAgentCommand {
@@ -86,11 +91,42 @@ export function resolveLocalAgentCommand(input: LocalAgentInput): LocalAgentComm
   );
 
   return {
-    command: input.settings.localCommand,
+    command: resolveExecutableCommand(input.settings.localCommand, input.executableResolver),
     args,
     cwd: input.vaultPath,
     stdin: prompt
   };
+}
+
+export function resolveExecutableCommand(
+  command: string,
+  options: {
+    candidatePaths?: string[];
+    exists?: (path: string) => boolean;
+  } = {}
+): string {
+  if (command.includes("/")) {
+    return command;
+  }
+  if (command !== "codex") {
+    return command;
+  }
+
+  const exists = options.exists ?? existsSync;
+  const candidatePaths = options.candidatePaths ?? defaultCodexCandidatePaths();
+  return candidatePaths.find((candidate) => exists(candidate)) ?? command;
+}
+
+function defaultCodexCandidatePaths(): string[] {
+  const home = process.env.HOME;
+  return [
+    process.env.CODEX_BRIDGE_CODEX_PATH,
+    home ? `${home}/.nvm/versions/node/v24.15.0/bin/codex` : undefined,
+    home ? `${home}/.nvm/versions/node/v24.14.0/bin/codex` : undefined,
+    home ? `${home}/.nvm/versions/node/v22.22.3/bin/codex` : undefined,
+    "/opt/homebrew/bin/codex",
+    "/usr/local/bin/codex"
+  ].filter((path): path is string => Boolean(path));
 }
 
 export async function runLocalAgent(input: LocalAgentInput): Promise<string> {
