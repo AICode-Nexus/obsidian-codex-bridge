@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildLocalAgentEnv,
   buildLocalAgentPrompt,
   resolveExecutableCommand,
   resolveLocalAgentCommand,
@@ -65,6 +66,29 @@ describe("resolveExecutableCommand", () => {
         exists: () => true
       })
     ).toBe("/opt/bin/custom-agent");
+  });
+});
+
+describe("buildLocalAgentEnv", () => {
+  it("adds the resolved executable directory to PATH so /usr/bin/env can find node", () => {
+    const env = buildLocalAgentEnv({
+      baseEnv: { HOME: "/Users/admin" },
+      command: "/Users/admin/.nvm/versions/node/v24.15.0/bin/codex"
+    });
+
+    expect(env.PATH?.split(":")).toContain("/Users/admin/.nvm/versions/node/v24.15.0/bin");
+    expect(env.PATH?.split(":")).toContain("/usr/bin");
+    expect(env.PATH?.split(":")).toContain("/bin");
+  });
+
+  it("preserves an existing PATH while prepending required GUI-safe directories", () => {
+    const env = buildLocalAgentEnv({
+      baseEnv: { PATH: "/custom/bin", HOME: "/Users/admin" },
+      command: "/Users/admin/.nvm/versions/node/v24.15.0/bin/codex"
+    });
+
+    expect(env.PATH?.startsWith("/Users/admin/.nvm/versions/node/v24.15.0/bin:")).toBe(true);
+    expect(env.PATH?.split(":")).toContain("/custom/bin");
   });
 });
 

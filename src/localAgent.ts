@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import { dirname } from "node:path";
 import type { CodexBridgeSettings } from "./settings";
 
 export interface LocalAgentInput {
@@ -117,6 +118,46 @@ export function resolveExecutableCommand(
   return candidatePaths.find((candidate) => exists(candidate)) ?? command;
 }
 
+export function buildLocalAgentEnv(input: {
+  baseEnv: NodeJS.ProcessEnv;
+  command: string;
+}): NodeJS.ProcessEnv {
+  const pathEntries = [
+    input.command.includes("/") ? dirname(input.command) : undefined,
+    input.baseEnv.HOME ? `${input.baseEnv.HOME}/.local/bin` : undefined,
+    input.baseEnv.HOME ? `${input.baseEnv.HOME}/.nvm/versions/node/v24.15.0/bin` : undefined,
+    input.baseEnv.HOME ? `${input.baseEnv.HOME}/.nvm/versions/node/v22.22.3/bin` : undefined,
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    "/usr/bin",
+    "/bin",
+    input.baseEnv.PATH
+  ];
+
+  return {
+    ...input.baseEnv,
+    PATH: uniquePathEntries(pathEntries).join(":")
+  };
+}
+
+function uniquePathEntries(entries: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const entry of entries) {
+    if (!entry) {
+      continue;
+    }
+    for (const part of entry.split(":")) {
+      if (!part || seen.has(part)) {
+        continue;
+      }
+      seen.add(part);
+      result.push(part);
+    }
+  }
+  return result;
+}
+
 function defaultCodexCandidatePaths(): string[] {
   const home = process.env.HOME;
   return [
@@ -135,7 +176,10 @@ export async function runLocalAgent(input: LocalAgentInput): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(command.command, command.args, {
       cwd: command.cwd,
-      env: process.env,
+      env: buildLocalAgentEnv({
+        baseEnv: process.env,
+        command: command.command
+      }),
       stdio: ["pipe", "pipe", "pipe"]
     });
 
